@@ -29,6 +29,7 @@ import { Multiplexer } from './reporters/multiplexer';
 import { Runner } from './runner';
 import { assignConfig, config, ParameterRegistration } from './fixtures';
 import { defaultConfig } from './config';
+import { dim } from 'colors/safe';
 
 export const reporters = {
   'dot': DotReporter,
@@ -55,7 +56,6 @@ loadProgram.action(async command => {
 loadProgram.parse(process.argv);
 
 async function runTests(command) {
-  assignConfig(defaultConfig);
 
   let shard: { total: number, current: number } | undefined;
   if (command.shard) {
@@ -76,6 +76,57 @@ async function runTests(command) {
     }
   });
 
+  const reporter = new Multiplexer(reporterObjects);
+
+  if (command.watch) {
+    while (true) {
+      console.clear();
+      const before = new Set(Object.keys(require.cache));
+      const result = await doRun(command, shard, testDir, reporter);
+      const filesToWatch = new Set<string>();
+      for (const name in require.cache) {
+        if (before.has(name))
+          continue;
+        filesToWatch.add(name);
+        delete require.cache[name];
+      }
+      if (result === 'sigint')
+        process.exit(130);
+      let callback;
+      const promise = new Promise(x => callback = x);
+      for (const file of filesToWatch) {
+        fs.watchFile(file, {
+          interval: 150
+        },callback);
+      }
+      console.log(dim('Watching for file changes...'));
+      await promise;
+      for (const file of filesToWatch)
+        fs.unwatchFile(file, callback);
+    }
+  } else {
+    const result = await doRun(command, shard, testDir, reporter);
+    if (result === 'sigint')
+      process.exit(130);
+
+    if (result === 'forbid-only') {
+      console.error('=====================================');
+      console.error(' --forbid-only found a focused test.');
+      console.error('=====================================');
+      process.exit(1);
+    }
+    if (result === 'no-tests') {
+      console.error('=================');
+      console.error(' no tests found.');
+      console.error('=================');
+      process.exit(1);
+    }
+    process.exit(result === 'failed' ? 1 : 0);
+  }
+
+}
+
+async function doRun(command, shard, testDir, reporter) {
   if (!fs.existsSync(testDir))
     throw new Error(`${testDir} does not exist`);
 
@@ -85,8 +136,8 @@ async function runTests(command) {
   else
     files = [testDir];
 
-  const reporter = new Multiplexer(reporterObjects);
   const runner = new Runner(reporter);
+  assignConfig(defaultConfig);
   const parameterRegistrations = runner.loadFiles(files).parameters;
   const parameters: { [key: string]: (string | boolean | number)[] } = {};
   for (const param of command.param || []) {
@@ -110,10 +161,6 @@ async function runTests(command) {
       list.push(value === 'true');
   }
 
-  if (command.help === undefined) {
-    printParametersHelp([...parameterRegistrations.values()]);
-    process.exit(0);
-  }
 
   // Assign config values after runner.loadFiles to set defaults from the command
   // line.
@@ -145,29 +192,18 @@ async function runTests(command) {
   if (command.workers)
     config.workers = parseInt(command.workers, 10);
 
+  if (command.help === undefined) {
+    printParametersHelp([...parameterRegistrations.values()]);
+    process.exit(0);
+  }
+
   runner.generateTests({ parameters });
   if (command.list) {
     runner.list();
     return;
   }
 
-  const result = await runner.run();
-  if (result === 'sigint')
-    process.exit(130);
-
-  if (result === 'forbid-only') {
-    console.error('=====================================');
-    console.error(' --forbid-only found a focused test.');
-    console.error('=====================================');
-    process.exit(1);
-  }
-  if (result === 'no-tests') {
-    console.error('=================');
-    console.error(' no tests found.');
-    console.error('=================');
-    process.exit(1);
-  }
-  process.exit(result === 'failed' ? 1 : 0);
+  return await runner.run();
 }
 
 async function collectFiles(testDir: string): Promise<string[]> {
@@ -221,6 +257,7 @@ function addRunnerOptions(program: commander.Command, param: boolean) {
       .option('--test-match <pattern>', `Pattern used to find test files`, '**/?(*.)+(spec|test).[jt]s')
       .option('--timeout <timeout>', `Specify test timeout threshold in milliseconds (default: ${defaultConfig.timeout})`)
       .option('-u, --update-snapshots', `Whether to update snapshots with actual results (default: ${defaultConfig.updateSnapshots})`)
+      .option('--watch', 'watch mode')
       .option('-x', `Stop after the first failure`);
 }
 

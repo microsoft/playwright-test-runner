@@ -123,6 +123,7 @@ export class Runner {
     await Promise.race([runner.run(), sigIntPromise]);
     await runner.stop();
     this._reporter.onEnd();
+    process.off('SIGINT', sigintHandler);
     if (sigint)
       return 'sigint';
     return runner.hasWorkerErrors() || suite.findSpec(spec => !spec.ok()) ? 'failed' : 'passed';
