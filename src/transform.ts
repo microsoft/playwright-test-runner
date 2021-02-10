@@ -22,7 +22,7 @@ import * as pirates from 'pirates';
 import * as babel from '@babel/core';
 import * as sourceMapSupport from 'source-map-support';
 
-const version = 3;
+const version = 4;
 const cacheDir = path.join(os.tmpdir(), 'playwright-transform-cache');
 const sourceMaps: Map<string, string> = new Map();
 
@@ -48,8 +48,20 @@ function calculateCachePath(content: string, filePath: string): string {
   return path.join(cacheDir, hash[0] + hash[1], fileName);
 }
 
-export function installTransform(): () => void {
+export function installTransform(testFile: string): () => void {
+
   return pirates.addHook((code, filename) => {
+    const ext = path.extname(filename);
+    if (testFile !== filename && (ext === '.jsx' || ext === '.tsx')) {
+      return `module.exports = new Proxy({}, {
+        get(target, name, receiver) {
+          return {
+            filename: ${JSON.stringify(filename)},
+            name,
+          };
+        }
+      });`;
+    }
     const cachePath = calculateCachePath(code, filename);
     const codePath = cachePath + '.js';
     const sourceMapPath = cachePath + '.map';
@@ -62,8 +74,22 @@ export function installTransform(): () => void {
       configFile: false,
       presets: [
         ['@babel/preset-env', { targets: {node: '10.17.0'} }],
-        ['@babel/preset-typescript', { onlyRemoveTypeImports: true }],
-      ],
+        (ext === '.ts' || ext === '.tsx') && ['@babel/preset-typescript', { onlyRemoveTypeImports: true }],
+        (ext === '.jsx' || ext === '.tsx') && ['@babel/preset-react', {
+          pragma: `(${function(...args) {
+            return {
+              type: 'React.createElement',
+              args,
+            };
+          }})`,
+          pragmaFrag: `(${function(...args) {
+            return {
+              type: 'React.Fragment',
+              args,
+            };
+          }})`
+        }]
+      ].filter(Boolean),
       plugins: [['@babel/plugin-proposal-class-properties', {loose: true}]],
       sourceMaps: 'both',
     });
@@ -75,6 +101,6 @@ export function installTransform(): () => void {
     }
     return result.code;
   }, {
-    exts: ['.ts']
+    exts: ['.ts', '.jsx', '.tsx']
   });
 }

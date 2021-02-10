@@ -57,5 +57,5 @@ export function workerSpec(suite: WorkerSuite): () => void {
     afterAll: (folio, fn) => currentRunSuites[0]._addHook('afterAll', fn),
   });
 
-  return installTransform();
+  return installTransform(suite.file);
 }

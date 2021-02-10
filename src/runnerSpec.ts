@@ -95,5 +95,5 @@ export function runnerSpec(suite: RunnerSuite, config: Config): () => void {
     afterAll: (folio, fn) => hook('afterAll', folio, fn),
   });
 
-  return installTransform();
+  return installTransform(suite.file);
 }

@@ -22,6 +22,7 @@
     "@babel/core": "^7.11.4",
     "@babel/plugin-proposal-class-properties": "^7.10.4",
     "@babel/preset-env": "^7.11.0",
+    "@babel/preset-react": "^7.12.10",
     "@babel/preset-typescript": "^7.10.4",
     "colors": "^1.4.0",
     "commander": "^6.1.0",
