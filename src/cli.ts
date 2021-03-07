@@ -148,7 +148,7 @@ async function runTests(command) {
     config.workers = parseInt(command.workers, 10);
 
   runner.generateTests({ parameters });
-  if (command.list) {
+  if (command.skipAll) {
     runner.list();
     return;
   }
@@ -209,7 +209,7 @@ function addRunnerOptions(program: commander.Command, param: boolean) {
       .option('--fixture-match <pattern>', `Pattern used to find fixture files`, '**/?(*.)fixtures.[jt]s')
       .option('-h, --help', `Display help`)
       .option('-j, --workers <workers>', `Number of concurrent workers, use 1 to run in single worker (default: number of CPU cores / 2)`)
-      .option('--list', `Only collect all the test and report them`)
+      .option('--skip-all', `Only collect all the test and report them`)
       .option('--max-failures <N>', `Stop after the first N failures (default: ${defaultConfig.maxFailures})`)
       .option('--output <outputDir>', `Folder for output artifacts (default: "test-results")`);
   if (param)

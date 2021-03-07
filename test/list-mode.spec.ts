@@ -44,7 +44,7 @@ it('should work with parameters', async ({ runInlineTest }) => {
         expect(true).toBe(false);
       });
     `,
-  }, { 'list': true });
+  }, { 'skip-all': true });
   expect(result.exitCode).toBe(0);
   const suites = result.report.suites;
   expect(suites[0].file).toContain('a.test.js');
@@ -75,7 +75,7 @@ it('should emit test annotations', async ({ runInlineTest }) => {
         expect(true).toBe(false);
       });
     `
-  }, { 'list': true });
+  }, { 'skip-all': true });
   expect(result.exitCode).toBe(0);
   expect(result.report.suites[0].suites[0].specs[0].tests[0].annotations).toEqual([{ type: 'fail', description: 'Fail annotation' }]);
 });
@@ -87,7 +87,7 @@ it('should have relative always-posix paths', async ({ runInlineTest }) => {
         expect(1 + 1).toBe(2);
       });
     `
-  }, { 'list': true });
+  }, { 'skip-all': true });
   expect(result.exitCode).toBe(0);
   expect(result.report.config.testDir.indexOf(path.win32.sep)).toBe(-1);
   expect(result.report.config.outputDir.indexOf(path.win32.sep)).toBe(-1);
@@ -107,7 +107,7 @@ it('should emit suite annotations', async ({ runInlineTest }) => {
         });
       });
     `
-  }, { 'list': true });
+  }, { 'skip-all': true });
   expect(result.exitCode).toBe(0);
   expect(result.report.suites[0].suites[0].suites[0].specs[0].tests[0].annotations).toEqual([{ type: 'fixme', description: 'Fix me!' }]);
 });
