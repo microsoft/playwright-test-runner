@@ -54,6 +54,11 @@ async function writeFiles(testInfo: folio.TestInfo, files: Files) {
   const headerTS = `
     import * as folio from ${JSON.stringify(path.join(__dirname, '..'))};
   `;
+  // When testing, we esmodules interop doesn't work
+  // so we need to import folio as the default import.
+  const headerMJS = `
+    import folio from ${JSON.stringify(path.join(__dirname, '..', 'out', 'index.js'))};
+  `;
 
   const hasConfig = Object.keys(files).some(name => name.includes('.config.'));
   if (!hasConfig) {
@@ -68,9 +73,10 @@ async function writeFiles(testInfo: folio.TestInfo, files: Files) {
   await Promise.all(Object.keys(files).map(async name => {
     const fullName = path.join(baseDir, name);
     await fs.promises.mkdir(path.dirname(fullName), { recursive: true });
-    const isTypeScriptSourceFile = name.endsWith('ts') && !name.endsWith('d.ts');
-    const header = isTypeScriptSourceFile ? headerTS : headerJS;
-    if (/(spec|test)\.(js|ts)$/.test(name)) {
+    const isTypeScriptSourceFile = name.endsWith('.ts') && !name.endsWith('.d.ts');
+    const isJSModule = name.endsWith('.mjs');
+    const header = isTypeScriptSourceFile ? headerTS : (isJSModule ? headerMJS : headerJS);
+    if (/(spec|test)\.(js|ts|mjs)$/.test(name)) {
       const fileHeader = header + 'const { expect } = folio;\n';
       await fs.promises.writeFile(fullName, fileHeader + files[name]);
     } else if (/\.(js|ts)$/.test(name) && !name.endsWith('d.ts')) {

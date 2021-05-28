@@ -103,7 +103,7 @@ export class Loader {
     this._fullConfig.projects = this._projects.map(p => p.config);
   }
 
-  loadTestFile(file: string) {
+  async loadTestFile(file: string) {
     if (this._fileSuites.has(file))
       return this._fileSuites.get(file)!;
     const revertBabelRequire = installTransform();
@@ -111,7 +111,12 @@ export class Loader {
       const suite = new Suite('');
       suite.file = file;
       setCurrentlyLoadingFileSuite(suite);
-      require(file);
+      if (file.endsWith('.mjs')) {
+        // eval to prevent typescript from transpiling us here.
+        await eval('import(file)');
+      } else {
+        require(file);
+      }
       this._fileSuites.set(file, suite);
       return suite;
     } catch (e) {
@@ -184,7 +189,7 @@ export class Loader {
       name: projectConfig.name || '',
       testDir,
       testIgnore: projectConfig.testIgnore || [],
-      testMatch: projectConfig.testMatch || '**/?(*.)+(spec|test).[jt]s',
+      testMatch: projectConfig.testMatch || '**/?(*.)+(spec|test).+(ts|js|mjs)',
       timeout: takeFirst(this._configOverrides.timeout, projectConfig.timeout, this._config.timeout, this._defaultTimeout),
       use: projectConfig.use || {},
     };

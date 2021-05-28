@@ -112,7 +112,7 @@ export class WorkerRunner extends EventEmitter {
     this._remaining = new Map(runPayload.entries.map(e => [ e.testId, e ]));
 
     this._loadIfNeeded();
-    const fileSuite = this._loader.loadTestFile(runPayload.file);
+    const fileSuite = await this._loader.loadTestFile(runPayload.file);
     let anySpec: Spec | undefined;
     fileSuite.findSpec(spec => {
       const test = this._project.generateTests(spec, this._params.repeatEachIndex)[0];
@@ -181,8 +181,8 @@ export class WorkerRunner extends EventEmitter {
     let deadlineRunner: DeadlineRunner<any> | undefined;
     const testId = test._id;
 
-    const relativeTestFilePath = path.relative(this._project.config.testDir, spec.file.replace(/\.(spec|test)\.(js|ts)/, ''));
-    const relativeTestFilePathForSnapshots = path.relative(this._project.useRootDirForSnapshots ? this._loader.fullConfig().rootDir : this._project.config.testDir, spec.file.replace(/\.(spec|test)\.(js|ts)/, ''));
+    const relativeTestFilePath = path.relative(this._project.config.testDir, spec.file.replace(/\.(spec|test)\.(js|ts|mjs)/, ''));
+    const relativeTestFilePathForSnapshots = path.relative(this._project.useRootDirForSnapshots ? this._loader.fullConfig().rootDir : this._project.config.testDir, spec.file.replace(/\.(spec|test)\.(js|ts|mjs)/, ''));
     const sanitizedTitle = spec.title.replace(/[^\w\d]+/g, '-');
     const baseOutputDir = (() => {
       const sanitizedRelativePath = relativeTestFilePath.replace(process.platform === 'win32' ? new RegExp('\\\\', 'g') : new RegExp('/', 'g'), '-');

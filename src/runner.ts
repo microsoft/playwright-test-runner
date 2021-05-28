@@ -212,7 +212,7 @@ export class Runner {
       await this._loader.loadGlobalHook(config.globalSetup)();
     try {
       for (const file of allTestFiles)
-        this._loader.loadTestFile(file);
+        await this._loader.loadTestFile(file);
 
       const rootSuite = new Suite('');
       for (const fileSuite of this._loader.fileSuites().values())
