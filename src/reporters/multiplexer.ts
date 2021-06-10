@@ -53,9 +53,9 @@ export class Multiplexer implements Reporter {
       reporter.onTimeout(timeout);
   }
 
-  onEnd() {
+  async onEnd() {
     for (const reporter of this._reporters)
-      reporter.onEnd();
+      await reporter.onEnd();
   }
 
   onError(error: TestError) {

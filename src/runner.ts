@@ -222,7 +222,7 @@ export class Runner {
         await dispatcher.stop();
         hasWorkerErrors = dispatcher.hasWorkerErrors();
       }
-      this._reporter.onEnd();
+      await this._reporter.onEnd();
 
       if (sigint)
         return 'sigint';
